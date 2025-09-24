@@ -20,7 +20,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core_auth',
-    'mock_app',
     'drf_spectacular',
     'rest_framework_simplejwt.token_blacklist'
 ]
