@@ -5,6 +5,7 @@ from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserPr
 from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from .permissions import HasAccessToBusinessElement
 
 class UserRegistrationView(APIView):
     """Представление для регистрации пользователя."""
@@ -76,3 +77,15 @@ class UserSoftDeleteView(APIView):
         user.is_active = False # Отключаем пользователя
         user.save()
         return Response({"detail": "Account deactivated successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+
+class TestResourceView(APIView):
+    """
+    Тестовое представление, защищенное кастомными правами доступа.
+    """
+    permission_classes = [HasAccessToBusinessElement]
+    # Указываем имя бизнес-элемента, к которому относится это представление
+    business_element_name = 'test_resource'
+
+    def get(self, request):
+        return Response({"message": "Доступ к тестовому ресурсу разрешен!"}, status=status.HTTP_200_OK)

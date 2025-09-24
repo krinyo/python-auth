@@ -29,22 +29,7 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('Superuser must have is_superuser=True.')
         return self.create_user(email, password, **extra_fields)
 
-# Модель пользователя
-class User(AbstractUser):
-    """
-    Кастомная модель пользователя, которая расширяет AbstractUser.
-    Используем email как уникальный идентификатор для аутентификации.
-    """
-    email = models.EmailField(unique=True)
-    is_active = models.BooleanField(default=True) # Поле для "мягкого" удаления
-    
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
 
-
-    objects = CustomUserManager()
-    def __str__(self):
-        return self.email
 
 # Модель для ролей
 class Role(models.Model):
@@ -56,6 +41,32 @@ class Role(models.Model):
 
     def __str__(self):
         return self.name
+
+# Модель пользователя
+class User(AbstractUser):
+    """
+    Кастомная модель пользователя, которая расширяет AbstractUser.
+    Используем email как уникальный идентификатор для аутентификации.
+    """
+    email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=True) # Поле для "мягкого" удаления
+    
+    # Добавляем поле для связи с моделью Role
+    role = models.ForeignKey(
+        Role, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='users'
+    )
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+
+    objects = CustomUserManager()
+    def __str__(self):
+        return self.email
 
 # Модель для бизнес-элементов
 class BusinessElement(models.Model):
