@@ -10,7 +10,7 @@ SECRET_KEY = 'django-insecure-k5q7j=$on7_%5ly^3lc^f-iiqpjj5bt#zy*ex#x=q!8d5dittc
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -104,4 +104,8 @@ AUTH_USER_MODEL = 'core_auth.User'
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # Добавляем JWT в качестве основной схемы аутентификации
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
 }

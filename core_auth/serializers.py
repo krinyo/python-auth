@@ -1,6 +1,18 @@
 from rest_framework import serializers
 from .models import User, Role, BusinessElement, AccessRule
 
+# Новый сериализатор для профиля
+class UserProfileSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для просмотра и обновления профиля пользователя.
+    """
+    class Meta:
+        model = User
+        fields = ('id', 'email', 'first_name', 'last_name', 'is_active')
+        read_only_fields = ('id', 'email') # Пользователь не может изменить ID или email
+
+# ... остальные сериализаторы, которые у вас уже есть ...
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     """Сериализатор для регистрации нового пользователя."""
     password = serializers.CharField(write_only=True)
