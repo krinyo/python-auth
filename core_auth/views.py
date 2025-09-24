@@ -1,11 +1,14 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserProfileSerializer
+from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserProfileSerializer, RoleSerializer, BusinessElementSerializer, AccessRuleSerializer
+
 from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from .permissions import HasAccessToBusinessElement
+from rest_framework import viewsets
+from .models import Role, BusinessElement, AccessRule
 
 class UserRegistrationView(APIView):
     """Представление для регистрации пользователя."""
@@ -89,3 +92,21 @@ class TestResourceView(APIView):
 
     def get(self, request):
         return Response({"message": "Доступ к тестовому ресурсу разрешен!"}, status=status.HTTP_200_OK)
+
+class RoleViewSet(viewsets.ModelViewSet):
+    """API для управления ролями."""
+    queryset = Role.objects.all()
+    serializer_class = RoleSerializer
+    permission_classes = [IsAdminUser]
+
+class BusinessElementViewSet(viewsets.ModelViewSet):
+    """API для управления бизнес-элементами."""
+    queryset = BusinessElement.objects.all()
+    serializer_class = BusinessElementSerializer
+    permission_classes = [IsAdminUser]
+
+class AccessRuleViewSet(viewsets.ModelViewSet):
+    """API для управления правилами доступа."""
+    queryset = AccessRule.objects.all()
+    serializer_class = AccessRuleSerializer
+    permission_classes = [IsAdminUser]
