@@ -9,6 +9,7 @@ class AuthAPITests(APITestCase):
         self.user_data = {
             'email': 'testuser@example.com',
             'password': 'strongpassword123',
+            'password2': 'strongpassword123',
             'first_name': 'Test',
             'last_name': 'User'
         }
@@ -26,15 +27,25 @@ class AuthAPITests(APITestCase):
     def _get_auth_token(self, user_data=None):
         if user_data is None:
             user_data = self.user_data
+            
+        reg_data = {
+            'email': user_data['email'],
+            'password': user_data['password'],
+            'password2': user_data['password'],
+            'first_name': user_data.get('first_name', 'Test'),
+            'last_name': user_data.get('last_name', 'User')
+        }
         
-        self.client.post(self.registration_url, user_data, format='json')
+        self.client.post(self.registration_url, reg_data, format='json')
         response = self.client.post(self.login_url, user_data, format='json')
+        if response.status_code != status.HTTP_200_OK:
+            raise Exception(f"Login failed: {response.content}")
         return response.data['access']
 
     def _get_superuser_token(self):
         response = self.client.post(self.login_url, {'email': 'admin@test.com', 'password': 'admin_password'}, format='json')
         if response.status_code != status.HTTP_200_OK:
-            raise Exception(f"Superuser login failed with status {response.status_code}")
+            raise Exception(f"Superuser login failed with status {response.status_code}. Response: {response.content}")
         return response.data['access']
 
     def test_registration(self):
@@ -75,28 +86,50 @@ class AuthAPITests(APITestCase):
         self.assertFalse(user.is_active)
 
     def test_access_to_test_resource(self):
-        user_with_access = User.objects.create_user(email='access@example.com', password='password123')
+        initial_role_count = Role.objects.count()
+        initial_be_count = BusinessElement.objects.count()
+        initial_rule_count = AccessRule.objects.count()
+
+        # Scenario 1: User with read permissions
+        user_with_access_data = {
+            'email': 'access@example.com',
+            'password': 'password123',
+            'first_name': 'Access',
+            'last_name': 'User'
+        }
+        user_with_access = User.objects.create_user(**user_with_access_data)
         access_role = Role.objects.create(name='access_role')
         user_with_access.role = access_role
         user_with_access.save()
         BusinessElement.objects.create(name='test_resource')
         AccessRule.objects.create(role=access_role, business_element=BusinessElement.objects.get(name='test_resource'), read_permission=True)
         
-        access_token = self._get_auth_token(user_data={'email': 'access@example.com', 'password': 'password123'})
+        access_token = self._get_auth_token(user_data=user_with_access_data)
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
         response = self.client.get(self.test_resource_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
-        user_no_access = User.objects.create_user(email='noaccess@example.com', password='password123')
+        # Scenario 2: User without permissions
+        user_no_access_data = {
+            'email': 'noaccess@example.com',
+            'password': 'password123',
+            'first_name': 'NoAccess',
+            'last_name': 'User'
+        }
+        user_no_access = User.objects.create_user(**user_no_access_data)
         no_access_role = Role.objects.create(name='no_access_role')
         user_no_access.role = no_access_role
         user_no_access.save()
         AccessRule.objects.create(role=no_access_role, business_element=BusinessElement.objects.get(name='test_resource'), read_permission=False)
         
-        no_access_token = self._get_auth_token(user_data={'email': 'noaccess@example.com', 'password': 'password123'})
+        no_access_token = self._get_auth_token(user_data=user_no_access_data)
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {no_access_token}')
         response = self.client.get(self.test_resource_url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        
+        self.assertEqual(Role.objects.count(), initial_role_count + 2)
+        self.assertEqual(BusinessElement.objects.count(), initial_be_count + 1)
+        self.assertEqual(AccessRule.objects.count(), initial_rule_count + 2)
 
     def test_admin_create_role(self):
         initial_role_count = Role.objects.count()

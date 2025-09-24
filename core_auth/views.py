@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserProfileSerializer, RoleSerializer, BusinessElementSerializer, AccessRuleSerializer
-
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
@@ -32,8 +32,8 @@ class UserRegistrationView(APIView):
 class UserLoginView(APIView):
     """Представление для входа пользователя."""
     permission_classes = [AllowAny]
-
     serializer_class = UserLoginSerializer
+
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
@@ -41,14 +41,31 @@ class UserLoginView(APIView):
             password = serializer.validated_data.get('password')
             user = authenticate(request, username=email, password=password)
             if user is not None:
-                # Если пользователь аутентифицирован, выдаем токены
+                if not user.is_active:
+                    return Response({"error": "User is deactivated"}, status=status.HTTP_401_UNAUTHORIZED)
                 refresh = RefreshToken.for_user(user)
-                return Response({
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                })
+                return Response({"refresh": str(refresh), "access": str(refresh.access_token)})
+            
+            # This is the correct place for the "Invalid credentials" response
             return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UserLogoutView(APIView):
+    """
+    Выход пользователя из системы.
+    Принимает refresh-токен и добавляет его в черный список.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
 # Новые представления для профиля
 class UserProfileView(APIView):
@@ -79,6 +96,8 @@ class UserSoftDeleteView(APIView):
         user = request.user
         user.is_active = False # Отключаем пользователя
         user.save()
+
+        OutstandingToken.objects.filter(user=user).delete()
         return Response({"detail": "Account deactivated successfully."}, status=status.HTTP_204_NO_CONTENT)
 
 
@@ -86,7 +105,7 @@ class TestResourceView(APIView):
     """
     Тестовое представление, защищенное кастомными правами доступа.
     """
-    permission_classes = [HasAccessToBusinessElement]
+    permission_classes = [IsAuthenticated, HasAccessToBusinessElement]
     # Указываем имя бизнес-элемента, к которому относится это представление
     business_element_name = 'test_resource'
 
@@ -110,3 +129,17 @@ class AccessRuleViewSet(viewsets.ModelViewSet):
     queryset = AccessRule.objects.all()
     serializer_class = AccessRuleSerializer
     permission_classes = [IsAdminUser]
+
+class MockCodeView(APIView):
+    permission_classes = [IsAuthenticated, HasAccessToBusinessElement]
+    business_element_name = 'code'
+
+    def get(self, request):
+        return Response({"message": "Доступ к коду разрешен."}, status=status.HTTP_200_OK)
+
+class MockTestsView(APIView):
+    permission_classes = [IsAuthenticated, HasAccessToBusinessElement]
+    business_element_name = 'tests'
+
+    def get(self, request):
+        return Response({"message": "Доступ к тестам разрешен."}, status=status.HTTP_200_OK)
