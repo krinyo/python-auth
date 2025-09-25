@@ -14,7 +14,6 @@ from .views import (
     MockTestsView
 )
 
-# Создаем роутер и регистрируем ViewSet-ы
 router = DefaultRouter()
 router.register(r'roles', RoleViewSet, basename='role')
 router.register(r'business-elements', BusinessElementViewSet, basename='business-element')

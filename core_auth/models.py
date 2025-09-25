@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 
-# Создаем наш кастомный UserManager
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         """
@@ -29,9 +28,6 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('Superuser must have is_superuser=True.')
         return self.create_user(email, password, **extra_fields)
 
-
-
-# Модель для ролей
 class Role(models.Model):
     """
     Модель для описания ролей пользователей в проекте.
@@ -42,16 +38,14 @@ class Role(models.Model):
     def __str__(self):
         return self.name
 
-# Модель пользователя
 class User(AbstractUser):
     """
     Кастомная модель пользователя, которая расширяет AbstractUser.
     Используем email как уникальный идентификатор для аутентификации.
     """
     email = models.EmailField(unique=True)
-    is_active = models.BooleanField(default=True) # Поле для "мягкого" удаления
+    is_active = models.BooleanField(default=True)
     
-    # Добавляем поле для связи с моделью Role
     role = models.ForeignKey(
         Role, 
         on_delete=models.SET_NULL, 
@@ -68,7 +62,6 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
-# Модель для бизнес-элементов
 class BusinessElement(models.Model):
     """
     Модель для описания объектов приложения (ресурсов).
@@ -79,7 +72,6 @@ class BusinessElement(models.Model):
     def __str__(self):
         return self.name
 
-# Модель для правил доступа
 class AccessRule(models.Model):
     """
     Модель, связывающая роли с бизнес-элементами и определяющая права доступа.
@@ -87,7 +79,6 @@ class AccessRule(models.Model):
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
     business_element = models.ForeignKey(BusinessElement, on_delete=models.CASCADE)
     
-    # Права доступа
     read_permission = models.BooleanField(default=False)
     create_permission = models.BooleanField(default=False)
     update_permission = models.BooleanField(default=False)
@@ -97,7 +88,6 @@ class AccessRule(models.Model):
     delete_all_permission = models.BooleanField(default=False)
     
     class Meta:
-        # Уникальная связка роли и элемента
         unique_together = ('role', 'business_element')
         
     def __str__(self):

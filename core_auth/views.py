@@ -19,7 +19,6 @@ class UserRegistrationView(APIView):
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            # Можно сразу же залогинить пользователя после регистрации
             refresh = RefreshToken.for_user(user)
             return Response({
                 'user_id': user.pk,
@@ -46,7 +45,6 @@ class UserLoginView(APIView):
                 refresh = RefreshToken.for_user(user)
                 return Response({"refresh": str(refresh), "access": str(refresh.access_token)})
             
-            # This is the correct place for the "Invalid credentials" response
             return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -67,12 +65,11 @@ class UserLogoutView(APIView):
         except Exception as e:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-# Новые представления для профиля
 class UserProfileView(APIView):
     """
     Представление для просмотра и обновления профиля текущего пользователя.
     """
-    permission_classes = [IsAuthenticated] # Доступ только для аутентифицированных пользователей
+    permission_classes = [IsAuthenticated]
 
     serializer_class = UserProfileSerializer
     def get(self, request):
@@ -94,7 +91,7 @@ class UserSoftDeleteView(APIView):
 
     def delete(self, request):
         user = request.user
-        user.is_active = False # Отключаем пользователя
+        user.is_active = False
         user.save()
 
         OutstandingToken.objects.filter(user=user).delete()
@@ -106,7 +103,6 @@ class TestResourceView(APIView):
     Тестовое представление, защищенное кастомными правами доступа.
     """
     permission_classes = [IsAuthenticated, HasAccessToBusinessElement]
-    # Указываем имя бизнес-элемента, к которому относится это представление
     business_element_name = 'test_resource'
 
     def get(self, request):

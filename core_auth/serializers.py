@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import User, Role, BusinessElement, AccessRule
 from django.contrib.auth.password_validation import validate_password
-# Новый сериализатор для профиля
+
 class UserProfileSerializer(serializers.ModelSerializer):
     """
     Сериализатор для просмотра и обновления профиля пользователя.
@@ -9,9 +9,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'email', 'first_name', 'last_name', 'is_active')
-        read_only_fields = ('id', 'email') # Пользователь не может изменить ID или email
-
-
+        read_only_fields = ('id', 'email')
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
@@ -30,7 +28,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        # Удаляем password2 перед созданием пользователя
         validated_data.pop('password2')
         user = User.objects.create_user(**validated_data)
         return user

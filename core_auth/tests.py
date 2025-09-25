@@ -4,7 +4,6 @@ from django.urls import reverse
 from core_auth.models import User, Role, BusinessElement, AccessRule
 
 class AuthAPITests(APITestCase):
-    
     def setUp(self):
         self.user_data = {
             'email': 'testuser@example.com',
@@ -90,7 +89,6 @@ class AuthAPITests(APITestCase):
         initial_be_count = BusinessElement.objects.count()
         initial_rule_count = AccessRule.objects.count()
 
-        # Scenario 1: User with read permissions
         user_with_access_data = {
             'email': 'access@example.com',
             'password': 'password123',
@@ -109,7 +107,6 @@ class AuthAPITests(APITestCase):
         response = self.client.get(self.test_resource_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
-        # Scenario 2: User without permissions
         user_no_access_data = {
             'email': 'noaccess@example.com',
             'password': 'password123',
